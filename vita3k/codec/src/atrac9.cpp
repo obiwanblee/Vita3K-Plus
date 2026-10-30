@@ -86,6 +86,18 @@ void Atrac9DecoderState::load_state(const Atrac9DecoderSavedState *src) {
         std::copy_n(src->prev_values[1], 256, frame.Channels[1]->Mdct.ImdctPrevious);
 }
 
+// Vita3K-Plus calls a bounded decode from a locally modified LibAtrac9 that was never
+// published. Stand-in on top of the stock Atrac9Decode: refuse when nothing is left in
+// the superframe, and report an error if the frame consumed more than was available.
+static int Atrac9DecodeBounded(void *handle, const uint8_t *data, int available, short *pcm, int *used) {
+    if (!data || available <= 0)
+        return ERR_UNPACK_SUPERFRAME_FLAG_INVALID;
+    const int res = Atrac9Decode(handle, data, pcm, used);
+    if (res == ERR_SUCCESS && *used > available)
+        return ERR_UNPACK_SUPERFRAME_FLAG_INVALID;
+    return res;
+}
+
 bool Atrac9DecoderState::send(const uint8_t *data, uint32_t size) {
     Atrac9CodecInfo *info = static_cast<Atrac9CodecInfo *>(atrac9_info);
 
