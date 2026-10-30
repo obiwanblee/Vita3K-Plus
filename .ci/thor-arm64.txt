@@ -1,0 +1,1 @@
+Branch for building the Linux arm64 AppImage (AYN Thor / Armada).
